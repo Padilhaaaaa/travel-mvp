@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ page_title }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    .hero {
+      margin-bottom: 32px;
+    }
+
+    .eyebrow {
+      color: #2dd4bf;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    h1 {
+      margin: 8px 0 12px;
+      font-size: 40px;
+    }
+
+    p {
+      color: #94a3b8;
+      line-height: 1.6;
+      max-width: 760px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      letter-spacing: 0.08em;
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .chart-card {
+      margin-top: 16px;
+    }
+
+    canvas {
+      margin-top: 12px;
+      max-height: 320px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="eyebrow">Travel WhatsApp MVP</div>
+      <h1>Travel Lead Qualification Dashboard</h1>
+      <p>
+        Simple FastAPI + Jinja2 dashboard for a travel agency demo focused on LATAM,
+        United States, and Mexico leads coming from WhatsApp conversations.
+      </p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="kpi-label">Total leads</div>
+        <div id="total-leads" class="kpi-value">-</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Hot leads</div>
+        <div id="hot-leads" class="kpi-value">-</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Qualification rate</div>
+        <div id="qualification-rate" class="kpi-value">-</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Top region</div>
+        <div id="top-region" class="kpi-value">-</div>
+      </div>
+    </div>
+
+    <div class="card chart-card">
+      <div class="kpi-label">Leads by region</div>
+      <canvas id="regionChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let regionChart;
+
+    async function loadMetrics() {
+      const response = await fetch("/api/metrics");
+      const data = await response.json();
+
+      document.getElementById("total-leads").textContent = data.total_leads;
+      document.getElementById("hot-leads").textContent = data.hot_leads;
+      document.getElementById("qualification-rate").textContent = `${data.qualification_rate}%`;
+      document.getElementById("top-region").textContent = data.top_region;
+
+      const labels = data.by_region.map(item => item.region);
+      const values = data.by_region.map(item => item.count);
+
+      const ctx = document.getElementById("regionChart");
+
+      if (regionChart) {
+        regionChart.destroy();
+      }
+
+      regionChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Leads",
+            data: values,
+            backgroundColor: ["#2dd4bf", "#60a5fa", "#f59e0b"],
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              labels: {
+                color: "#e5e7eb"
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#cbd5e1" },
+              grid: { color: "#334155" }
+            },
+            y: {
+              ticks: { color: "#cbd5e1" },
+              grid: { color: "#334155" },
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    loadMetrics();
+  </script>
+</body>
+</html>
