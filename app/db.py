@@ -68,3 +68,45 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+
+def insert_lead(lead_data: dict):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO leads (
+            phone,
+            destination_region,
+            destination_city,
+            travel_period_text,
+            travelers_count,
+            trip_type,
+            budget_range,
+            has_passport,
+            has_visa,
+            main_intent,
+            lead_temperature,
+            status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        lead_data["phone"],
+        lead_data["destination_region"],
+        lead_data["destination_city"],
+        lead_data["travel_period_text"],
+        lead_data["travelers_count"],
+        lead_data["trip_type"],
+        lead_data["budget_range"],
+        lead_data["has_passport"],
+        lead_data["has_visa"],
+        lead_data["main_intent"],
+        lead_data["lead_temperature"],
+        lead_data["status"]
+    ))
+
+    conn.commit()
+    lead_id = cur.lastrowid
+    conn.close()
+
+    return lead_id

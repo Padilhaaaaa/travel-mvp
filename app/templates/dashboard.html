@@ -14,9 +14,9 @@
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 32px 20px;
+      padding: 32px 20px 60px;
     }
 
     .hero {
@@ -69,13 +69,78 @@
       margin-top: 8px;
     }
 
-    .chart-card {
-      margin-top: 16px;
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      align-items: start;
     }
 
     canvas {
       margin-top: 12px;
       max-height: 320px;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #0b1220;
+      color: #e5e7eb;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 8px;
+      background: #14b8a6;
+      color: #06202a;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #2dd4bf;
+    }
+
+    .message {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+
+    .helper {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 8px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
     }
   </style>
 </head>
@@ -109,9 +174,62 @@
       </div>
     </div>
 
-    <div class="card chart-card">
-      <div class="kpi-label">Leads by region</div>
-      <canvas id="regionChart"></canvas>
+    <div class="layout">
+      <div class="card">
+        <div class="kpi-label">Leads by region</div>
+        <canvas id="regionChart"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="kpi-label">Quick lead creation</div>
+        <div class="helper">
+          Use only the essential fields. The backend fills internal defaults automatically for the MVP.
+        </div>
+
+        <form id="lead-form">
+          <div>
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="text" required />
+          </div>
+
+          <div>
+            <label for="destination_region">Destination region</label>
+            <select id="destination_region" name="destination_region" required>
+              <option value="LATAM">LATAM</option>
+              <option value="USA">USA</option>
+              <option value="Mexico">Mexico</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="destination_city">Destination city</label>
+            <input id="destination_city" name="destination_city" type="text" required />
+          </div>
+
+          <div>
+            <label for="travel_period_text">Travel period</label>
+            <input id="travel_period_text" name="travel_period_text" type="text" placeholder="July 2026" required />
+          </div>
+
+          <div>
+            <label for="travelers_count">Travelers count</label>
+            <input id="travelers_count" name="travelers_count" type="number" min="1" required />
+          </div>
+
+          <div>
+            <label for="trip_type">Trip type</label>
+            <input id="trip_type" name="trip_type" type="text" placeholder="couple, family, leisure" required />
+          </div>
+
+          <div>
+            <label for="budget_range">Budget range</label>
+            <input id="budget_range" name="budget_range" type="text" placeholder="20k BRL" required />
+          </div>
+
+          <button type="submit">Create lead</button>
+          <div id="form-message" class="message"></div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -171,6 +289,46 @@
       });
     }
 
+    async function createLead(event) {
+      event.preventDefault();
+
+      const formMessage = document.getElementById("form-message");
+
+      const payload = {
+        phone: document.getElementById("phone").value,
+        destination_region: document.getElementById("destination_region").value,
+        destination_city: document.getElementById("destination_city").value,
+        travel_period_text: document.getElementById("travel_period_text").value,
+        travelers_count: Number(document.getElementById("travelers_count").value),
+        trip_type: document.getElementById("trip_type").value,
+        budget_range: document.getElementById("budget_range").value
+      };
+
+      try {
+        const response = await fetch("/api/leads", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          formMessage.textContent = "Failed to create lead. Try a different phone number.";
+          return;
+        }
+
+        formMessage.textContent = `Lead created successfully: ${result.phone}`;
+        document.getElementById("lead-form").reset();
+        await loadMetrics();
+      } catch (error) {
+        formMessage.textContent = "Unexpected error while creating lead.";
+      }
+    }
+
+    document.getElementById("lead-form").addEventListener("submit", createLead);
     loadMetrics();
   </script>
 </body>
