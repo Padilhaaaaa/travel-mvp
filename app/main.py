@@ -1,6 +1,9 @@
+import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+import requests
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -8,10 +11,20 @@ from pydantic import BaseModel
 from app.db import get_connection, init_db, insert_lead
 from app.services.qualification import get_next_question, process_conversation_step
 
-app = FastAPI(title="Travel WhatsApp MVP")
+load_dotenv()
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+APP_ENV = os.getenv("APP_ENV", "development")
+
+app = FastAPI(title="Travel Lead Qualification MVP")
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+telegram_sessions = {}
+last_update_id = None
+processed_update_ids = set()
 
 
 class LeadCreate(BaseModel):
@@ -38,8 +51,9 @@ def startup_event():
 @app.get("/")
 def read_root():
     return {
-        "message": "Travel WhatsApp MVP is running",
-        "status": "ready"
+        "message": "Travel Lead Qualification MVP is running",
+        "status": "ready",
+        "environment": APP_ENV
     }
 
 
@@ -49,9 +63,27 @@ def dashboard(request: Request):
         request=request,
         name="dashboard.html",
         context={
-            "page_title": "Travel WhatsApp MVP Dashboard"
+            "page_title": "Travel Lead Qualification Dashboard"
         }
     )
+
+
+@app.get("/api/telegram/test")
+def test_telegram():
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN not configured")
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getMe"
+    response = requests.get(url, timeout=15)
+    data = response.json()
+
+    if not response.ok or not data.get("ok"):
+        raise HTTPException(status_code=500, detail="Failed to validate Telegram bot token")
+
+    return {
+        "message": "Telegram bot connected successfully",
+        "bot": data["result"]
+    }
 
 
 @app.get("/api/metrics")
@@ -171,4 +203,129 @@ def simulate_chat(payload: SimulateRequest):
             "lead": result["lead"]
         },
         "completed": result["completed"]
+    }
+
+@app.get("/api/telegram/updates")
+def telegram_updates():
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN not configured")
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
+    response = requests.get(url, timeout=15)
+    data = response.json()
+
+    if not response.ok or not data.get("ok"):
+        raise HTTPException(status_code=500, detail="Failed to fetch Telegram updates")
+
+    return data
+
+
+@app.get("/api/telegram/send-test")
+def telegram_send_test():
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN not configured")
+
+    if not TELEGRAM_CHAT_ID:
+        raise HTTPException(status_code=500, detail="TELEGRAM_CHAT_ID not configured")
+
+    send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": "Test message from FastAPI: Telegram integration is working."
+    }
+
+    send_response = requests.post(send_url, json=payload, timeout=15)
+    send_data = send_response.json()
+
+    if not send_response.ok or not send_data.get("ok"):
+        raise HTTPException(status_code=500, detail="Failed to send Telegram message")
+
+    return {
+        "message": "Telegram test message sent successfully",
+        "chat_id": TELEGRAM_CHAT_ID
+    }
+
+telegram_sessions = {}
+
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(request: Request):
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(status_code=500, detail="TELEGRAM_BOT_TOKEN not configured")
+
+    update = await request.json()
+    message = update.get("message")
+
+    if not message:
+        return {"message": "No valid message found"}
+
+    chat_id = str(message["chat"]["id"])
+    text = message.get("text", "").strip()
+
+    if not text:
+        return {"message": "Empty message ignored"}
+
+    phone = f"tg_{chat_id}"
+
+    if text.lower() == "/start":
+        telegram_sessions[chat_id] = {
+            "state": "start",
+            "lead": {}
+        }
+        reply = get_next_question("start")
+    else:
+        session = telegram_sessions.get(chat_id, {
+            "state": "start",
+            "lead": {}
+        })
+
+        result = process_conversation_step(session, text)
+
+        telegram_sessions[chat_id] = {
+            "state": result["state"],
+            "lead": result["lead"]
+        }
+
+        reply = result["reply"]
+
+        if result["completed"]:
+            lead = result["lead"]
+
+            lead_data = {
+                "phone": phone,
+                "destination_region": lead["destination_region"],
+                "destination_city": lead["destination_city"],
+                "travel_period_text": lead["travel_period_text"],
+                "travelers_count": lead["travelers_count"],
+                "trip_type": lead["trip_type"],
+                "budget_range": lead["budget_range"],
+                "has_passport": "unknown",
+                "has_visa": "n/a" if lead["destination_region"] in ["LATAM", "Mexico"] else "unknown",
+                "main_intent": "package_quote",
+                "lead_temperature": lead["lead_temperature"],
+                "status": "qualified"
+            }
+
+            insert_lead(lead_data)
+
+            telegram_sessions[chat_id] = {
+                "state": "done",
+                "lead": {}
+            }
+
+    send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": reply
+    }
+
+    send_response = requests.post(send_url, json=payload, timeout=15)
+    send_data = send_response.json()
+
+    if not send_response.ok or not send_data.get("ok"):
+        raise HTTPException(status_code=500, detail="Failed to send Telegram message")
+
+    return {
+        "message": "Telegram update processed successfully",
+        "chat_id": chat_id,
+        "reply": reply
     }

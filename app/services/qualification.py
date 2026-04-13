@@ -9,42 +9,32 @@ def get_next_question(state: str) -> str:
     }
     return questions.get(state, "Thanks. I have everything I need.")
 
-
 def infer_region(destination_city: str) -> str:
     city = destination_city.lower()
-
     if city in ["cancun", "mexico city", "tulum", "playa del carmen"]:
         return "Mexico"
-
     if city in ["miami", "orlando", "new york", "las vegas", "los angeles"]:
         return "USA"
-
     return "LATAM"
-
 
 def classify_lead(destination_region: str, travelers_count: int, budget_range: str) -> str:
     score = 0
     budget_text = budget_range.lower().replace(" ", "")
-
     if destination_region in ["USA", "Mexico"]:
         score += 2
     else:
         score += 1
-
     if travelers_count >= 2:
         score += 1
-
     if any(value in budget_text for value in ["20k", "25k", "30k", "35k", "40k"]):
         score += 2
     elif any(value in budget_text for value in ["10k", "12k", "15k", "18k"]):
         score += 1
-
     if score >= 5:
         return "hot"
     if score >= 3:
         return "warm"
     return "cold"
-
 
 def process_conversation_step(session: dict, message: str) -> dict:
     state = session.get("state", "start")
@@ -71,7 +61,15 @@ def process_conversation_step(session: dict, message: str) -> dict:
 
     if state == "ask_travelers":
         try:
-            lead["travelers_count"] = int(message.strip())
+            travelers = int(message.strip())
+            if travelers < 1 or travelers > 20:
+                return {
+                    "reply": "Please enter a realistic number between 1 and 20.",
+                    "state": "ask_travelers",
+                    "lead": lead,
+                    "completed": False
+                }
+            lead["travelers_count"] = travelers
         except ValueError:
             return {
                 "reply": "Please enter only the number of travelers, for example: 2",
@@ -79,7 +77,6 @@ def process_conversation_step(session: dict, message: str) -> dict:
                 "lead": lead,
                 "completed": False
             }
-
         return {
             "reply": get_next_question("ask_budget"),
             "state": "ask_budget",
@@ -103,7 +100,6 @@ def process_conversation_step(session: dict, message: str) -> dict:
             lead["travelers_count"],
             lead["budget_range"]
         )
-
         return {
             "reply": (
                 f"Perfect. I qualified this opportunity as {lead['lead_temperature']} lead "

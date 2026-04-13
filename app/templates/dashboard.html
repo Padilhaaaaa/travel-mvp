@@ -254,11 +254,11 @@
 <body>
   <div class="container">
     <div class="hero">
-      <div class="eyebrow">Travel WhatsApp MVP</div>
-      <h1>Travel Lead Qualification Dashboard</h1>
+      <div class="eyebrow">Travel Lead Qualification MVP</div>
+      <h1>Travel Qualification Dashboard</h1>
       <p>
         FastAPI + Jinja2 demo for lead qualification, metrics visualization,
-        and a WhatsApp-style conversation simulator for travel sales workflows.
+        and Telegram-ready conversation flow for travel sales workflows.
       </p>
     </div>
 
@@ -357,7 +357,7 @@
 
           <div id="chat-messages" class="chat-messages">
             <div class="bubble bot">
-              This panel simulates the future WhatsApp qualification flow.
+              This panel simulates the Telegram qualification flow.
               Click Start to begin the conversation.
             </div>
           </div>
@@ -468,7 +468,7 @@
         const result = await response.json();
 
         if (!response.ok) {
-          formMessage.textContent = "Failed to create lead. Try a different phone number.";
+          formMessage.textContent = "Failed to create lead. Check the data and try again.";
           return;
         }
 
@@ -548,7 +548,7 @@
       const container = document.getElementById("chat-messages");
       container.innerHTML = `
         <div class="bubble bot">
-          This panel simulates the future WhatsApp qualification flow.
+          This panel simulates the Telegram qualification flow.
           Click Start to begin the conversation.
         </div>
       `;
