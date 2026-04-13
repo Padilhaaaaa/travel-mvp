@@ -67,7 +67,7 @@ GET /dashboard               ← Operational dashboard (Chart.js)
 
 ## Dashboard
 
-![Dashboard](screenshot.png)
+![Dashboard](Screenshot.png)
 
 ---
 
