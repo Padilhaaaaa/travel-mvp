@@ -65,6 +65,12 @@ GET /dashboard               ← Operational dashboard (Chart.js)
 
 ---
 
+## Dashboard
+
+![Dashboard](screenshot.png)
+
+---
+
 ## Qualification Fields
 
 Each qualified lead captures:
