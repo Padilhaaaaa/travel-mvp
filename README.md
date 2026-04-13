@@ -1,102 +1,137 @@
 # Travel Lead Qualification MVP
 
-Simple Python FastAPI project built as an MVP for travel lead qualification, dashboard monitoring, and Telegram-first customer conversation flows.
+A conversational lead qualification system for travel agencies, built with FastAPI and Telegram Bot API. Leads are captured through a structured conversation flow, qualified automatically, persisted in a database, and monitored through an operational dashboard.
 
-## Overview
+> **Note on channel decision:** This project was originally designed around WhatsApp Cloud API. After identifying that Meta Business account approval would block the delivery timeline, the integration layer was migrated to Telegram, which offers an open API with no approval gate. The qualification engine, persistence layer, dashboard, and all business logic remain identical. In a production scenario, swapping the channel back to WhatsApp is an isolated change in the integration layer only.
 
-This project was originally conceived around a WhatsApp-style lead qualification idea, but the current MVP is now centered on a Telegram-first flow with a FastAPI backend, SQLite persistence, API-based metrics, and a dashboard for operational visibility.
-
-The app is designed to capture travel leads through conversation, structure the most relevant qualification data, persist it in a database, and expose metrics for commercial follow-up.
+---
 
 ## Stack
 
-- Python
-- FastAPI
-- SQLite
-- Jinja2
-- Chart.js
-- Telegram Bot API
+| Layer | Technology |
+|---|---|
+| Backend | Python · FastAPI |
+| Conversation AI | Anthropic Claude API (qualification engine) |
+| Messaging channel | Telegram Bot API |
+| Persistence | SQLite |
+| Dashboard | Jinja2 · Chart.js |
+| Config | python-dotenv |
 
-## Current scope
+---
 
-The MVP currently covers the essential lead qualification cycle:
+## Architecture
 
-- Conversational lead intake
-- Structured lead qualification
-- SQLite persistence
-- Metrics aggregation through API
-- Dashboard visualization for operational monitoring
+```
+Telegram user
+     │
+     ▼
+POST /api/telegram/webhook   ← Telegram delivers message
+     │
+     ▼
+qualification.py             ← Conversation state machine
+     │                          powered by Claude API
+     ▼
+db.py (SQLite)               ← Lead persisted with temperature score
+     │
+     ▼
+GET /api/metrics             ← Aggregated metrics
+     │
+     ▼
+GET /dashboard               ← Operational dashboard (Chart.js)
+```
+
+---
+
+## Product Flow
+
+1. User sends `/start` to the Telegram bot
+2. The bot walks through a structured qualification conversation — destination, travel period, group size, budget, trip type, decision timing, and priorities
+3. At the end of the flow, Claude classifies the lead temperature: `hot`, `warm`, or `cold`
+4. The qualified lead is persisted in SQLite with a full notes summary
+5. The dashboard displays real-time KPIs and charts for the commercial team
+
+---
 
 ## Features
 
-- Travel lead qualification flow
-- KPI dashboard with lead metrics
-- Destination, budget, and source-based chart visualization
-- Manual lead creation endpoint
-- Conversation simulator for testing qualification logic
-- SQLite persistence for qualified leads
-- Telegram bot token validation endpoint
-- JSON metrics endpoint for dashboard consumption
+- Conversational lead intake via Telegram bot
+- AI-powered lead temperature scoring (`hot` / `warm` / `cold`)
+- SQLite persistence with structured qualification fields
+- REST API with `/api/metrics` for dashboard consumption
+- Operational dashboard with Chart.js visualizations: leads by destination, budget, source, trip type, decision timing, and priority focus
+- `POST /api/simulate` endpoint for testing the qualification flow without Telegram
+- `POST /api/leads` for manual lead creation
+- Telegram bot token validation via `/api/telegram/test`
 
-## What's new
+---
 
-Compared to the earlier project version, the MVP now emphasizes:
+## Qualification Fields
 
-- Telegram as the primary messaging channel instead of a WhatsApp-oriented concept
-- A clearer lead qualification narrative, not just chatbot interaction
-- Dashboard consumption through `/api/metrics`
-- Better separation between data capture, persistence, metrics, and visualization
-- Expanded dashboard use as an operational monitoring layer
+Each qualified lead captures:
 
-## Run locally
+| Field | Description |
+|---|---|
+| `destination_country` | Target country |
+| `destination_city` | Specific city or region |
+| `travel_period_text` | Travel period in natural language |
+| `travelers_count` | Number of travelers |
+| `trip_type` | e.g. couple, family, solo, group |
+| `budget_range` | Budget range informed by the lead |
+| `decision_timing` | How soon they plan to decide |
+| `priority_focus` | What matters most: price, comfort, experience |
+| `lead_temperature` | `hot` / `warm` / `cold` — AI classification |
+| `lead_source` | `telegram`, `simulate`, or `manual` |
+| `notes_summary` | Full structured summary generated at qualification |
 
+---
+
+## API Routes
+
+| Method | Route | Description |
+|---|---|---|
+| `GET` | `/` | Health check |
+| `GET` | `/dashboard` | Operational dashboard (HTML) |
+| `GET` | `/api/metrics` | Aggregated lead metrics (JSON) |
+| `POST` | `/api/leads` | Create a lead manually |
+| `POST` | `/api/simulate` | Simulate a qualification conversation |
+| `POST` | `/api/telegram/webhook` | Receive Telegram messages |
+| `GET` | `/api/telegram/test` | Validate Telegram bot token |
+| `GET` | `/api/telegram/updates` | Fetch raw Telegram updates |
+| `GET` | `/api/telegram/send-test` | Send a test message via Telegram |
+
+---
+
+## Simulate Endpoint — No Telegram Required
+
+You can test the full qualification flow without a Telegram setup:
+
+**Start the conversation:**
 ```bash
-python -m venv venv
-venv\\Scripts\\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+curl -X POST http://localhost:8000/api/simulate \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+5511999990001", "message": "start", "session": null}'
 ```
 
-## Environment variables
-
-Create a `.env` file in the project root:
-
-```env
-TELEGRAM_BOT_TOKEN=your_bot_token_here
-DB_PATH=travel_mvp.db
-APP_ENV=development
+**Continue with responses, passing the session back each turn:**
+```bash
+curl -X POST http://localhost:8000/api/simulate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+5511999990001",
+    "message": "Cancun",
+    "session": {"state": "ask_destination", "lead": {}}
+  }'
 ```
 
-## Routes
-
-### GET /
-Returns the app health status.
-
-### GET /dashboard
-Renders the lead qualification dashboard.
-
-### GET /api/metrics
-Returns aggregated lead metrics in JSON format for dashboard consumption.
-
-### GET /api/telegram/test
-Validates the Telegram bot token using the Telegram Bot API.
-
-### POST /api/leads
-Creates a lead manually.
-
-### POST /api/simulate
-Simulates a customer conversation using the qualification flow.
-
-## Example response
-
+**Example completed response:**
 ```json
 {
-  "reply": "Perfect. I qualified this opportunity as warm lead for Cancun (Mexico).",
+  "reply": "Perfect. I qualified this opportunity as a warm lead for Cancun (Mexico).",
   "session": {
     "state": "done",
     "lead": {
       "destination_city": "Cancun",
-      "destination_region": "Mexico",
+      "destination_country": "Mexico",
       "travel_period_text": "July",
       "travelers_count": 2,
       "budget_range": "20k",
@@ -108,16 +143,80 @@ Simulates a customer conversation using the qualification flow.
 }
 ```
 
-## Product flow
+---
 
-1. A lead enters through a conversational flow.
-2. The system structures the qualification data.
-3. The lead is persisted in SQLite.
-4. Metrics are aggregated through `/api/metrics`.
-5. The dashboard displays operational indicators for monitoring.
+## Running Locally
 
-## Notes
+```bash
+git clone https://github.com/Padilhaaaaa/travel-mvp.git
+cd travel-mvp
 
-This project originally started with a WhatsApp-oriented idea, but the current MVP is being positioned around Telegram-first lead intake and dashboard-based operational monitoring.
+python -m venv venv
+# Mac/Linux:
+source venv/bin/activate
+# Windows:
+venv\Scripts\activate
 
-At this stage, the focus is on documenting and presenting the essential product flow rather than expanding the feature set.
+pip install -r requirements.txt
+
+cp .env.example .env
+# Edit .env with your credentials
+
+uvicorn app.main:app --reload
+```
+
+The app will be available at `http://localhost:8000`.
+Interactive API docs at `http://localhost:8000/docs`.
+
+---
+
+## Environment Variables
+
+```env
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here       # optional, for send-test route
+DB_PATH=travel_mvp.db
+APP_ENV=development
+```
+
+To get a Telegram bot token: open [@BotFather](https://t.me/BotFather) on Telegram, send `/newbot`, and follow the instructions.
+
+---
+
+## Connecting Telegram Webhook
+
+After deploying or using [ngrok](https://ngrok.com) locally:
+
+```bash
+curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://your-url.com/api/telegram/webhook"
+```
+
+---
+
+## Project Structure
+
+```
+travel-mvp/
+├── app/
+│   ├── main.py               # FastAPI app, routes, Telegram webhook handler
+│   ├── db.py                 # SQLite connection, schema, insert_lead
+│   ├── services/
+│   │   └── qualification.py  # Conversation state machine + Claude integration
+│   └── templates/
+│       └── dashboard.html    # Operational dashboard (Jinja2 + Chart.js)
+├── .env.example
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## What I Would Add in a Production Version
+
+- Replace SQLite with PostgreSQL + pgvector for semantic lead search
+- Add webhook signature verification (Telegram `X-Telegram-Bot-Api-Secret-Token`)
+- Persistent session storage (Redis) instead of in-memory dict
+- Authentication layer for the dashboard
+- WhatsApp Cloud API as primary channel (drop-in swap for the Telegram layer)
+- CI/CD pipeline and Docker Compose for local parity with production
