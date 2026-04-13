@@ -29,12 +29,14 @@ processed_update_ids = set()
 
 class LeadCreate(BaseModel):
     phone: str
-    destination_region: str
+    destination_country: str
     destination_city: str
     travel_period_text: str
     travelers_count: int
     trip_type: str
     budget_range: str
+    decision_timing: str
+    priority_focus: str
 
 
 class SimulateRequest(BaseModel):
@@ -98,25 +100,80 @@ def get_metrics():
     hot_leads = cur.fetchone()["total"]
 
     cur.execute("""
-        SELECT destination_region, COUNT(*) AS count
+        SELECT destination_country, COUNT(*) AS count
         FROM leads
-        GROUP BY destination_region
+        GROUP BY destination_country
         ORDER BY count DESC
     """)
-    by_region = [
-        {"region": row["destination_region"], "count": row["count"]}
+    by_destination = [
+        {"destination_country": row["destination_country"], "count": row["count"]}
         for row in cur.fetchall()
     ]
 
     cur.execute("""
-        SELECT destination_region
+        SELECT budget_range, COUNT(*) AS count
         FROM leads
-        GROUP BY destination_region
+        GROUP BY budget_range
+        ORDER BY count DESC
+    """)
+    by_budget = [
+        {"budget_range": row["budget_range"], "count": row["count"]}
+        for row in cur.fetchall()
+    ]
+
+    cur.execute("""
+        SELECT lead_source, COUNT(*) AS count
+        FROM leads
+        GROUP BY lead_source
+        ORDER BY count DESC
+    """)
+    by_source = [
+        {"lead_source": row["lead_source"], "count": row["count"]}
+        for row in cur.fetchall()
+    ]
+
+    cur.execute("""
+        SELECT decision_timing, COUNT(*) AS count
+        FROM leads
+        GROUP BY decision_timing
+        ORDER BY count DESC
+    """)
+    by_decision_timing = [
+        {"decision_timing": row["decision_timing"], "count": row["count"]}
+        for row in cur.fetchall()
+    ]
+
+    cur.execute("""
+        SELECT trip_type, COUNT(*) AS count
+        FROM leads
+        GROUP BY trip_type
+        ORDER BY count DESC
+    """)
+    by_trip_type = [
+        {"trip_type": row["trip_type"], "count": row["count"]}
+        for row in cur.fetchall()
+    ]
+
+    cur.execute("""
+        SELECT priority_focus, COUNT(*) AS count
+        FROM leads
+        GROUP BY priority_focus
+        ORDER BY count DESC
+    """)
+    by_priority_focus = [
+        {"priority_focus": row["priority_focus"], "count": row["count"]}
+        for row in cur.fetchall()
+    ]
+
+    cur.execute("""
+        SELECT destination_country
+        FROM leads
+        GROUP BY destination_country
         ORDER BY COUNT(*) DESC
         LIMIT 1
     """)
-    top_region_row = cur.fetchone()
-    top_region = top_region_row["destination_region"] if top_region_row else "-"
+    top_destination_row = cur.fetchone()
+    top_destination = top_destination_row["destination_country"] if top_destination_row else "-"
 
     conn.close()
 
@@ -126,8 +183,13 @@ def get_metrics():
         "total_leads": total_leads,
         "hot_leads": hot_leads,
         "qualification_rate": qualification_rate,
-        "top_region": top_region,
-        "by_region": by_region
+        "top_destination": top_destination,
+        "by_destination": by_destination,
+        "by_budget": by_budget,
+        "by_source": by_source,
+        "by_decision_timing": by_decision_timing,
+        "by_trip_type": by_trip_type,
+        "by_priority_focus": by_priority_focus
     }
 
 
@@ -135,17 +197,30 @@ def get_metrics():
 def create_lead(lead: LeadCreate):
     lead_data = {
         "phone": lead.phone,
-        "destination_region": lead.destination_region,
+        "destination_country": lead.destination_country,
         "destination_city": lead.destination_city,
         "travel_period_text": lead.travel_period_text,
         "travelers_count": lead.travelers_count,
         "trip_type": lead.trip_type,
         "budget_range": lead.budget_range,
+        "decision_timing": lead.decision_timing,
+        "priority_focus": lead.priority_focus,
+        "lead_source": "manual",
         "has_passport": "unknown",
-        "has_visa": "n/a" if lead.destination_region in ["LATAM", "Mexico"] else "unknown",
+        "has_visa": "unknown",
         "main_intent": "package_quote",
         "lead_temperature": "warm",
-        "status": "new"
+        "status": "new",
+        "notes_summary": (
+            f"Destino: {lead.destination_country}; "
+            f"Roteiro/Cidade: {lead.destination_city}; "
+            f"Período: {lead.travel_period_text}; "
+            f"Viajantes: {lead.travelers_count}; "
+            f"Perfil: {lead.trip_type}; "
+            f"Orçamento: {lead.budget_range}; "
+            f"Decisão: {lead.decision_timing}; "
+            f"Prioridade: {lead.priority_focus}"
+        )
     }
 
     lead_id = insert_lead(lead_data)
@@ -181,17 +256,21 @@ def simulate_chat(payload: SimulateRequest):
 
         lead_data = {
             "phone": payload.phone,
-            "destination_region": lead["destination_region"],
+            "destination_country": lead["destination_country"],
             "destination_city": lead["destination_city"],
             "travel_period_text": lead["travel_period_text"],
             "travelers_count": lead["travelers_count"],
             "trip_type": lead["trip_type"],
             "budget_range": lead["budget_range"],
+            "decision_timing": lead["decision_timing"],
+            "priority_focus": lead["priority_focus"],
+            "lead_source": "simulate",
             "has_passport": "unknown",
-            "has_visa": "n/a" if lead["destination_region"] in ["LATAM", "Mexico"] else "unknown",
+            "has_visa": "unknown",
             "main_intent": "package_quote",
             "lead_temperature": lead["lead_temperature"],
-            "status": "qualified"
+            "status": "qualified",
+            "notes_summary": lead["notes_summary"]
         }
 
         insert_lead(lead_data)
@@ -204,6 +283,7 @@ def simulate_chat(payload: SimulateRequest):
         },
         "completed": result["completed"]
     }
+
 
 @app.get("/api/telegram/updates")
 def telegram_updates():
@@ -245,7 +325,6 @@ def telegram_send_test():
         "chat_id": TELEGRAM_CHAT_ID
     }
 
-telegram_sessions = {}
 
 @app.post("/api/telegram/webhook")
 async def telegram_webhook(request: Request):
@@ -292,17 +371,21 @@ async def telegram_webhook(request: Request):
 
             lead_data = {
                 "phone": phone,
-                "destination_region": lead["destination_region"],
+                "destination_country": lead["destination_country"],
                 "destination_city": lead["destination_city"],
                 "travel_period_text": lead["travel_period_text"],
                 "travelers_count": lead["travelers_count"],
                 "trip_type": lead["trip_type"],
                 "budget_range": lead["budget_range"],
+                "decision_timing": lead["decision_timing"],
+                "priority_focus": lead["priority_focus"],
+                "lead_source": "telegram",
                 "has_passport": "unknown",
-                "has_visa": "n/a" if lead["destination_region"] in ["LATAM", "Mexico"] else "unknown",
+                "has_visa": "unknown",
                 "main_intent": "package_quote",
                 "lead_temperature": lead["lead_temperature"],
-                "status": "qualified"
+                "status": "qualified",
+                "notes_summary": lead["notes_summary"]
             }
 
             insert_lead(lead_data)

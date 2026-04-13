@@ -1,566 +1,545 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ page_title }}</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    :root {
+      --bg-1: #07111f;
+      --bg-2: #0f172a;
+      --panel: rgba(15, 23, 42, 0.78);
+      --panel-soft: rgba(30, 41, 59, 0.7);
+      --border: rgba(148, 163, 184, 0.14);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --teal: #14b8a6;
+      --blue: #3b82f6;
+      --violet: #8b5cf6;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --green: #22c55e;
+      --cyan: #06b6d4;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+      --radius: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(20, 184, 166, 0.13), transparent 20%),
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 18%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+      min-height: 100vh;
     }
 
     .container {
-      max-width: 1280px;
+      max-width: 1440px;
       margin: 0 auto;
-      padding: 32px 20px 60px;
+      padding: 30px 18px 50px;
     }
 
     .hero {
-      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
     }
 
-    .eyebrow {
-      color: #2dd4bf;
-      font-size: 12px;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
+    .hero h1 {
+      margin: 0;
+      font-size: 2.1rem;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
     }
 
-    h1 {
-      margin: 8px 0 12px;
-      font-size: 40px;
-    }
-
-    p {
-      color: #94a3b8;
-      line-height: 1.6;
+    .hero p {
+      margin: 10px 0 0;
+      color: var(--muted);
       max-width: 760px;
+      line-height: 1.6;
     }
 
-    .grid {
+    .badge {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(20, 184, 166, 0.12);
+      color: #99f6e4;
+      border: 1px solid rgba(20, 184, 166, 0.22);
+      white-space: nowrap;
+      font-size: 0.95rem;
+    }
+
+    .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .card {
-      background: #111827;
-      border: 1px solid #334155;
-      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .kpi-card {
       padding: 20px;
-      box-sizing: border-box;
     }
 
     .kpi-label {
-      font-size: 12px;
-      text-transform: uppercase;
-      color: #94a3b8;
-      letter-spacing: 0.08em;
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin-bottom: 12px;
     }
 
     .kpi-value {
-      font-size: 32px;
-      font-weight: bold;
-      margin-top: 8px;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
     }
 
-    .main-layout {
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 20px;
-      align-items: start;
-    }
-
-    .left-stack,
-    .right-stack {
-      display: grid;
-      gap: 20px;
-    }
-
-    canvas {
-      margin-top: 12px;
-      max-height: 320px;
-    }
-
-    form {
-      display: grid;
-      gap: 12px;
-      margin-top: 14px;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
+    .kpi-sub {
       color: #cbd5e1;
-      margin-bottom: 6px;
+      font-size: 0.95rem;
     }
 
-    input, select, button {
-      font: inherit;
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+      margin-bottom: 18px;
     }
 
-    input, select {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid #334155;
-      background: #0b1220;
-      color: #e5e7eb;
-      box-sizing: border-box;
+    .charts-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 18px;
     }
 
-    button {
-      background: #14b8a6;
-      color: #06202a;
-      border: none;
-      border-radius: 10px;
-      padding: 14px 18px;
-      font-weight: bold;
-      cursor: pointer;
+    .panel {
+      padding: 20px;
+      min-height: 360px;
     }
 
-    button:hover {
-      background: #2dd4bf;
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.08rem;
+      letter-spacing: -0.02em;
     }
 
-    .message {
-      margin-top: 12px;
-      font-size: 14px;
-      color: #93c5fd;
-    }
-
-    .helper {
-      color: #94a3b8;
-      font-size: 14px;
+    .panel p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 0.94rem;
       line-height: 1.5;
-      margin-top: 8px;
-      margin-bottom: 14px;
     }
 
-    .chat-box {
+    .chart-box {
+      position: relative;
+      height: 280px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .summary-panel {
+      padding: 20px;
+    }
+
+    .summary-panel h3 {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+    }
+
+    .summary-list {
       display: flex;
       flex-direction: column;
-      height: 520px;
+      gap: 12px;
     }
 
-    .chat-header {
+    .summary-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
       gap: 12px;
-    }
-
-    .chat-title {
-      font-size: 14px;
-      color: #cbd5e1;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .chat-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .secondary-button {
-      background: transparent;
-      color: #cbd5e1;
-      border: 1px solid #334155;
-      padding: 10px 12px;
-    }
-
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      background: #0b1220;
-      border: 1px solid #1e293b;
+      padding: 14px 15px;
       border-radius: 14px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(148, 163, 184, 0.08);
     }
 
-    .bubble {
-      max-width: 80%;
-      padding: 12px 14px;
-      border-radius: 14px;
-      line-height: 1.5;
-      font-size: 14px;
-      white-space: pre-wrap;
+    .summary-item strong {
+      font-size: 0.96rem;
     }
 
-    .bubble.bot {
-      background: #1e293b;
-      color: #e2e8f0;
-      align-self: flex-start;
-      border-bottom-left-radius: 4px;
+    .summary-item span {
+      color: #cbd5e1;
+      font-size: 0.94rem;
+      text-align: right;
     }
 
-    .bubble.user {
-      background: #14b8a6;
-      color: #06202a;
-      align-self: flex-end;
-      border-bottom-right-radius: 4px;
-      font-weight: 600;
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.92rem;
     }
 
-    .chat-form {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      margin-top: 14px;
+    @media (max-width: 1200px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .charts-grid,
+      .charts-grid-3,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
-    .chat-form input {
-      margin: 0;
-    }
+    @media (max-width: 640px) {
+      .container {
+        padding: 22px 14px 34px;
+      }
 
-    .chat-phone {
-      margin-top: 10px;
-      margin-bottom: 10px;
-    }
-
-    .small-note {
-      color: #94a3b8;
-      font-size: 13px;
-      line-height: 1.5;
-      margin-top: 8px;
-    }
-
-    @media (max-width: 980px) {
-      .main-layout {
+      .kpi-grid {
         grid-template-columns: 1fr;
       }
 
-      h1 {
-        font-size: 32px;
+      .hero h1 {
+        font-size: 1.75rem;
       }
 
-      .chat-box {
-        height: 480px;
+      .kpi-value {
+        font-size: 1.7rem;
       }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="hero">
-      <div class="eyebrow">Travel Lead Qualification MVP</div>
-      <h1>Travel Qualification Dashboard</h1>
-      <p>
-        FastAPI + Jinja2 demo for lead qualification, metrics visualization,
-        and Telegram-ready conversation flow for travel sales workflows.
-      </p>
-    </div>
-
-    <div class="grid">
-      <div class="card">
-        <div class="kpi-label">Total leads</div>
-        <div id="total-leads" class="kpi-value">-</div>
+    <section class="hero">
+      <div>
+        <h1>{{ page_title }}</h1>
+        <p>
+          Painel operacional de leads qualificados pelo bot com foco em demanda por destino,
+          investimento, urgência da decisão e perfil da viagem.
+        </p>
       </div>
-      <div class="card">
-        <div class="kpi-label">Hot leads</div>
-        <div id="hot-leads" class="kpi-value">-</div>
+      <div class="badge" id="lastUpdated">Atualizando dashboard...</div>
+    </section>
+
+    <section class="kpi-grid">
+      <div class="card kpi-card">
+        <div class="kpi-label">Total de leads</div>
+        <div class="kpi-value" id="totalLeads">--</div>
+        <div class="kpi-sub">Todos os registros salvos no banco</div>
       </div>
-      <div class="card">
-        <div class="kpi-label">Qualification rate</div>
-        <div id="qualification-rate" class="kpi-value">-</div>
+
+      <div class="card kpi-card">
+        <div class="kpi-label">Leads quentes</div>
+        <div class="kpi-value" id="hotLeads">--</div>
+        <div class="kpi-sub">Maior chance de avanço comercial</div>
       </div>
-      <div class="card">
-        <div class="kpi-label">Top region</div>
-        <div id="top-region" class="kpi-value">-</div>
+
+      <div class="card kpi-card">
+        <div class="kpi-label">Taxa de qualificação</div>
+        <div class="kpi-value" id="qualificationRate">--%</div>
+        <div class="kpi-sub">Percentual de leads classificados como hot</div>
       </div>
-    </div>
 
-    <div class="main-layout">
-      <div class="left-stack">
-        <div class="card">
-          <div class="kpi-label">Leads by region</div>
-          <canvas id="regionChart"></canvas>
-        </div>
+      <div class="card kpi-card">
+        <div class="kpi-label">Destino principal</div>
+        <div class="kpi-value" id="topDestination">--</div>
+        <div class="kpi-sub">Destino com maior volume atual</div>
+      </div>
+    </section>
 
-        <div class="card">
-          <div class="kpi-label">Quick lead creation</div>
-          <div class="helper">
-            Use only the essential fields. Internal defaults are filled automatically for the MVP.
-          </div>
-
-          <form id="lead-form">
-            <div>
-              <label for="phone">Phone</label>
-              <input id="phone" name="phone" type="text" required />
-            </div>
-
-            <div>
-              <label for="destination_region">Destination region</label>
-              <select id="destination_region" name="destination_region" required>
-                <option value="LATAM">LATAM</option>
-                <option value="USA">USA</option>
-                <option value="Mexico">Mexico</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="destination_city">Destination city</label>
-              <input id="destination_city" name="destination_city" type="text" required />
-            </div>
-
-            <div>
-              <label for="travel_period_text">Travel period</label>
-              <input id="travel_period_text" name="travel_period_text" type="text" placeholder="July 2026" required />
-            </div>
-
-            <div>
-              <label for="travelers_count">Travelers count</label>
-              <input id="travelers_count" name="travelers_count" type="number" min="1" required />
-            </div>
-
-            <div>
-              <label for="trip_type">Trip type</label>
-              <input id="trip_type" name="trip_type" type="text" placeholder="couple, family, leisure" required />
-            </div>
-
-            <div>
-              <label for="budget_range">Budget range</label>
-              <input id="budget_range" name="budget_range" type="text" placeholder="20k BRL" required />
-            </div>
-
-            <button type="submit">Create lead</button>
-            <div id="form-message" class="message"></div>
-          </form>
+    <section class="charts-grid">
+      <div class="card panel">
+        <h2>Interesse por destino</h2>
+        <p>Mostra onde está a maior concentração de demanda entre os destinos informados.</p>
+        <div class="chart-box">
+          <canvas id="destinationChart"></canvas>
         </div>
       </div>
 
-      <div class="right-stack">
-        <div class="card chat-box">
-          <div class="chat-header">
-            <div class="chat-title">Conversation simulator</div>
-            <div class="chat-actions">
-              <button id="start-chat" class="secondary-button" type="button">Start</button>
-              <button id="reset-chat" class="secondary-button" type="button">Reset</button>
-            </div>
-          </div>
+      <div class="card panel">
+        <h2>Origem dos leads</h2>
+        <p>Comparação entre Telegram, simulate e outras entradas registradas.</p>
+        <div class="chart-box">
+          <canvas id="sourceChart"></canvas>
+        </div>
+      </div>
+    </section>
 
-          <div class="chat-phone">
-            <label for="chat-phone">Simulation phone</label>
-            <input id="chat-phone" type="text" value="5511999999090" />
-          </div>
+    <section class="charts-grid-3">
+      <div class="card panel">
+        <h2>Faixa de orçamento</h2>
+        <p>Distribuição do investimento estimado por viajante.</p>
+        <div class="chart-box">
+          <canvas id="budgetChart"></canvas>
+        </div>
+      </div>
 
-          <div id="chat-messages" class="chat-messages">
-            <div class="bubble bot">
-              This panel simulates the Telegram qualification flow.
-              Click Start to begin the conversation.
-            </div>
-          </div>
+      <div class="card panel">
+        <h2>Momento da decisão</h2>
+        <p>Ajuda a identificar urgência comercial e janela de fechamento.</p>
+        <div class="chart-box">
+          <canvas id="timingChart"></canvas>
+        </div>
+      </div>
 
-          <form id="chat-form" class="chat-form">
-            <input id="chat-input" type="text" placeholder="Type the next customer message..." />
-            <button type="submit">Send</button>
-          </form>
+      <div class="card panel">
+        <h2>Tipo de viagem</h2>
+        <p>Mostra o perfil predominante da demanda qualificada.</p>
+        <div class="chart-box">
+          <canvas id="tripTypeChart"></canvas>
+        </div>
+      </div>
+    </section>
 
-          <div class="small-note">
-            When the simulated conversation is completed, the lead is automatically saved in the database.
+    <section class="summary-grid">
+      <div class="card panel">
+        <h2>Prioridade do cliente</h2>
+        <p>O que mais pesa na decisão: custo-benefício, conforto, exclusividade ou suporte.</p>
+        <div class="chart-box">
+          <canvas id="priorityChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card summary-panel">
+        <h3>Resumo executivo</h3>
+        <div class="summary-list" id="summaryList">
+          <div class="summary-item">
+            <strong>Carregando insights...</strong>
+            <span>aguarde</span>
           </div>
         </div>
       </div>
+    </section>
+
+    <div class="footer-note">
+      Os gráficos são alimentados em tempo real pelo endpoint <strong>/api/metrics</strong> e
+      atualizados automaticamente a cada 30 segundos.
     </div>
   </div>
 
   <script>
-    let regionChart;
-    let chatSession = null;
+    let destinationChart;
+    let sourceChart;
+    let budgetChart;
+    let timingChart;
+    let tripTypeChart;
+    let priorityChart;
 
-    function addMessage(role, text) {
-      const container = document.getElementById("chat-messages");
-      const bubble = document.createElement("div");
-      bubble.className = `bubble ${role}`;
-      bubble.textContent = text;
-      container.appendChild(bubble);
-      container.scrollTop = container.scrollHeight;
+    const textColor = "#e2e8f0";
+    const gridColor = "rgba(148, 163, 184, 0.08)";
+
+    function nowPtBr() {
+      return new Date().toLocaleString("pt-BR");
     }
 
-    async function loadMetrics() {
-      const response = await fetch("/api/metrics");
-      const data = await response.json();
+    function createOrUpdateChart(instance, canvasId, type, labels, data, colors, customOptions = {}) {
+      const ctx = document.getElementById(canvasId).getContext("2d");
 
-      document.getElementById("total-leads").textContent = data.total_leads;
-      document.getElementById("hot-leads").textContent = data.hot_leads;
-      document.getElementById("qualification-rate").textContent = `${data.qualification_rate}%`;
-      document.getElementById("top-region").textContent = data.top_region;
-
-      const labels = data.by_region.map(item => item.region);
-      const values = data.by_region.map(item => item.count);
-
-      const ctx = document.getElementById("regionChart");
-
-      if (regionChart) {
-        regionChart.destroy();
+      if (instance) {
+        instance.data.labels = labels;
+        instance.data.datasets[0].data = data;
+        instance.data.datasets[0].backgroundColor = colors;
+        instance.data.datasets[0].borderColor = colors;
+        instance.update();
+        return instance;
       }
 
-      regionChart = new Chart(ctx, {
-        type: "bar",
+      return new Chart(ctx, {
+        type,
         data: {
-          labels: labels,
+          labels,
           datasets: [{
             label: "Leads",
-            data: values,
-            backgroundColor: ["#2dd4bf", "#60a5fa", "#f59e0b"],
-            borderRadius: 8
+            data,
+            backgroundColor: colors,
+            borderColor: colors,
+            borderWidth: 1.2,
+            borderRadius: type === "bar" ? 10 : 0,
+            hoverOffset: type === "doughnut" ? 8 : 0
           }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
             legend: {
+              display: type !== "bar",
+              position: "bottom",
               labels: {
-                color: "#e5e7eb"
+                color: textColor,
+                boxWidth: 14
               }
+            },
+            tooltip: {
+              backgroundColor: "#0f172a",
+              titleColor: "#f8fafc",
+              bodyColor: "#cbd5e1",
+              borderColor: "rgba(148,163,184,0.18)",
+              borderWidth: 1
             }
           },
-          scales: {
+          scales: type === "bar" ? {
             x: {
-              ticks: { color: "#cbd5e1" },
-              grid: { color: "#334155" }
+              ticks: { color: textColor },
+              grid: { color: gridColor }
             },
             y: {
-              ticks: { color: "#cbd5e1" },
-              grid: { color: "#334155" },
-              beginAtZero: true
+              beginAtZero: true,
+              ticks: {
+                color: textColor,
+                precision: 0
+              },
+              grid: { color: gridColor }
             }
-          }
+          } : {},
+          ...customOptions
         }
       });
     }
 
-    async function createLead(event) {
-      event.preventDefault();
-
-      const formMessage = document.getElementById("form-message");
-
-      const payload = {
-        phone: document.getElementById("phone").value,
-        destination_region: document.getElementById("destination_region").value,
-        destination_city: document.getElementById("destination_city").value,
-        travel_period_text: document.getElementById("travel_period_text").value,
-        travelers_count: Number(document.getElementById("travelers_count").value),
-        trip_type: document.getElementById("trip_type").value,
-        budget_range: document.getElementById("budget_range").value
-      };
-
-      try {
-        const response = await fetch("/api/leads", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          formMessage.textContent = "Failed to create lead. Check the data and try again.";
-          return;
-        }
-
-        formMessage.textContent = `Lead created successfully: ${result.phone}`;
-        document.getElementById("lead-form").reset();
-        await loadMetrics();
-      } catch (error) {
-        formMessage.textContent = "Unexpected error while creating lead.";
-      }
+    function topItem(list, keyName) {
+      if (!list || !list.length) return "-";
+      return `${list[0][keyName]} (${list[0].count})`;
     }
 
-    async function startChat() {
-      const phone = document.getElementById("chat-phone").value.trim();
-
-      const response = await fetch("/api/simulate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          phone: phone,
-          message: "start",
-          session: null
-        })
-      });
-
-      const result = await response.json();
-
-      chatSession = result.session;
-      const container = document.getElementById("chat-messages");
-      container.innerHTML = "";
-      addMessage("bot", result.reply);
-    }
-
-    async function sendChatMessage(event) {
-      event.preventDefault();
-
-      const input = document.getElementById("chat-input");
-      const phone = document.getElementById("chat-phone").value.trim();
-      const message = input.value.trim();
-
-      if (!message) {
-        return;
-      }
-
-      addMessage("user", message);
-      input.value = "";
-
-      try {
-        const response = await fetch("/api/simulate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            phone: phone,
-            message: message,
-            session: chatSession
-          })
-        });
-
-        const result = await response.json();
-        chatSession = result.session;
-
-        addMessage("bot", result.reply);
-
-        if (result.completed) {
-          await loadMetrics();
-        }
-      } catch (error) {
-        addMessage("bot", "Unexpected error while sending the message.");
-      }
-    }
-
-    function resetChat() {
-      chatSession = null;
-      const container = document.getElementById("chat-messages");
-      container.innerHTML = `
-        <div class="bubble bot">
-          This panel simulates the Telegram qualification flow.
-          Click Start to begin the conversation.
+    function updateSummary(metrics) {
+      const summaryList = document.getElementById("summaryList");
+      summaryList.innerHTML = `
+        <div class="summary-item">
+          <strong>Destino líder</strong>
+          <span>${metrics.top_destination || "-"}</span>
+        </div>
+        <div class="summary-item">
+          <strong>Canal mais forte</strong>
+          <span>${topItem(metrics.by_source, "lead_source")}</span>
+        </div>
+        <div class="summary-item">
+          <strong>Budget dominante</strong>
+          <span>${topItem(metrics.by_budget, "budget_range")}</span>
+        </div>
+        <div class="summary-item">
+          <strong>Decisão mais comum</strong>
+          <span>${topItem(metrics.by_decision_timing, "decision_timing")}</span>
+        </div>
+        <div class="summary-item">
+          <strong>Perfil mais comum</strong>
+          <span>${topItem(metrics.by_trip_type, "trip_type")}</span>
+        </div>
+        <div class="summary-item">
+          <strong>Prioridade principal</strong>
+          <span>${topItem(metrics.by_priority_focus, "priority_focus")}</span>
         </div>
       `;
-      document.getElementById("chat-input").value = "";
     }
 
-    document.getElementById("lead-form").addEventListener("submit", createLead);
-    document.getElementById("chat-form").addEventListener("submit", sendChatMessage);
-    document.getElementById("start-chat").addEventListener("click", startChat);
-    document.getElementById("reset-chat").addEventListener("click", resetChat);
+    async function loadMetrics() {
+      try {
+        const response = await fetch("/api/metrics");
+        if (!response.ok) {
+          throw new Error("Erro ao buscar métricas");
+        }
+
+        const metrics = await response.json();
+
+        document.getElementById("totalLeads").textContent = metrics.total_leads ?? 0;
+        document.getElementById("hotLeads").textContent = metrics.hot_leads ?? 0;
+        document.getElementById("qualificationRate").textContent = `${metrics.qualification_rate ?? 0}%`;
+        document.getElementById("topDestination").textContent = metrics.top_destination || "-";
+        document.getElementById("lastUpdated").textContent = `Atualizado em ${nowPtBr()}`;
+
+        destinationChart = createOrUpdateChart(
+          destinationChart,
+          "destinationChart",
+          "bar",
+          (metrics.by_destination || []).map(item => item.destination_country),
+          (metrics.by_destination || []).map(item => item.count),
+          ["#14b8a6", "#3b82f6", "#8b5cf6", "#f59e0b", "#f43f5e", "#22c55e", "#06b6d4", "#f97316"]
+        );
+
+        sourceChart = createOrUpdateChart(
+          sourceChart,
+          "sourceChart",
+          "doughnut",
+          (metrics.by_source || []).map(item => item.lead_source),
+          (metrics.by_source || []).map(item => item.count),
+          ["#14b8a6", "#3b82f6", "#8b5cf6", "#f59e0b", "#f43f5e"]
+        );
+
+        budgetChart = createOrUpdateChart(
+          budgetChart,
+          "budgetChart",
+          "bar",
+          (metrics.by_budget || []).map(item => item.budget_range),
+          (metrics.by_budget || []).map(item => item.count),
+          ["#3b82f6", "#14b8a6", "#8b5cf6", "#f59e0b"]
+        );
+
+        timingChart = createOrUpdateChart(
+          timingChart,
+          "timingChart",
+          "bar",
+          (metrics.by_decision_timing || []).map(item => item.decision_timing),
+          (metrics.by_decision_timing || []).map(item => item.count),
+          ["#f59e0b", "#14b8a6", "#3b82f6", "#8b5cf6"]
+        );
+
+        tripTypeChart = createOrUpdateChart(
+          tripTypeChart,
+          "tripTypeChart",
+          "doughnut",
+          (metrics.by_trip_type || []).map(item => item.trip_type),
+          (metrics.by_trip_type || []).map(item => item.count),
+          ["#22c55e", "#3b82f6", "#8b5cf6", "#f43f5e", "#14b8a6"]
+        );
+
+        priorityChart = createOrUpdateChart(
+          priorityChart,
+          "priorityChart",
+          "bar",
+          (metrics.by_priority_focus || []).map(item => item.priority_focus),
+          (metrics.by_priority_focus || []).map(item => item.count),
+          ["#06b6d4", "#14b8a6", "#3b82f6", "#8b5cf6", "#f59e0b"]
+        );
+
+        updateSummary(metrics);
+      } catch (error) {
+        console.error(error);
+        document.getElementById("lastUpdated").textContent = "Erro ao carregar dashboard";
+        document.getElementById("summaryList").innerHTML = `
+          <div class="summary-item">
+            <strong>Falha ao carregar dados</strong>
+            <span>verifique /api/metrics</span>
+          </div>
+        `;
+      }
+    }
 
     loadMetrics();
+    setInterval(loadMetrics, 30000);
   </script>
 </body>
 </html>
