@@ -6,6 +6,17 @@ A conversational lead qualification system for travel agencies, built with FastA
 
 ---
 
+## Live Demo
+
+| | |
+|---|---|
+| Dashboard | https://travel-mvp-production-a93a.up.railway.app/dashboard |
+| API Docs | https://travel-mvp-production-a93a.up.railway.app/docs|
+| Health | https://travel-mvp-production-a93a.up.railway.app |
+| Telegram Bot | https://t.me/travel_qualification_demo_bot |
+
+---
+
 ## Stack
 
 | Layer | Technology |
@@ -16,6 +27,7 @@ A conversational lead qualification system for travel agencies, built with FastA
 | Persistence | SQLite |
 | Dashboard | Jinja2 · Chart.js |
 | Config | python-dotenv |
+| Deploy | Railway |
 
 ---
 
@@ -113,14 +125,14 @@ You can test the full qualification flow without a Telegram setup:
 
 **Start the conversation:**
 ```bash
-curl -X POST http://localhost:8000/api/simulate \
+curl -X POST https://travel-mvp-production-a93a.up.railway.app/api/simulate \
   -H "Content-Type: application/json" \
   -d '{"phone": "+5511999990001", "message": "start", "session": null}'
 ```
 
 **Continue with responses, passing the session back each turn:**
 ```bash
-curl -X POST http://localhost:8000/api/simulate \
+curl -X POST https://travel-mvp-production-a93a.up.railway.app/api/simulate \
   -H "Content-Type: application/json" \
   -d '{
     "phone": "+5511999990001",
@@ -176,26 +188,38 @@ Interactive API docs at `http://localhost:8000/docs`.
 
 ---
 
+## Deploying to Railway
+
+This project is ready to deploy on [Railway](https://railway.app) with zero configuration.
+
+1. Fork or clone this repo
+2. Create a new project on Railway and connect your GitHub repo
+3. Add environment variables in the Railway dashboard
+4. Railway detects the `Procfile` and deploys automatically
+
+```
+web: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+After deploy, register the Telegram webhook:
+
+```bash
+curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<YOUR_URL>.up.railway.app/api/telegram/webhook"
+```
+
+---
+
 ## Environment Variables
 
 ```env
 TELEGRAM_BOT_TOKEN=your_bot_token_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
 TELEGRAM_CHAT_ID=your_chat_id_here       # optional, for send-test route
 DB_PATH=travel_mvp.db
 APP_ENV=development
 ```
 
 To get a Telegram bot token: open [@BotFather](https://t.me/BotFather) on Telegram, send `/newbot`, and follow the instructions.
-
----
-
-## Connecting Telegram Webhook
-
-After deploying or using [ngrok](https://ngrok.com) locally:
-
-```bash
-curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://your-url.com/api/telegram/webhook"
-```
 
 ---
 
@@ -212,6 +236,7 @@ travel-mvp/
 │       └── dashboard.html    # Operational dashboard (Jinja2 + Chart.js)
 ├── .env.example
 ├── .gitignore
+├── Procfile                  # Railway deploy config
 ├── requirements.txt
 └── README.md
 ```
